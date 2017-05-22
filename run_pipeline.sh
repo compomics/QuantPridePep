@@ -15,7 +15,7 @@ if [ ! -d "$deployDir" ]; then
 fi
 #ls folder/submmited/*.raw | parallel mono ms2extract.exe  {1} 
 
-<< comment
+#<< comment
 echo "MGF parsing --> creating .moff2start"
 java -jar mzparser-1.0.0.jar  -i $input_folder -o $deployDir -m
 
@@ -37,7 +37,8 @@ python create_input_from_mgf.py --start_folder $deployDir --output $deployDir --
 
 
 # note change dir in  bash : you shoudl add the script to the patch and run like.scriptname
-comment
+#comment
+
 cd $cdmoFFwdir
 
 #ls 
@@ -53,11 +54,11 @@ ls $deployDir/Cha2*.ms2feat_input | parallel --no-notice --joblog $deployDir/log
 
 
 cd $cdInitwdir
-<< comment2
+#<< comment2
 
 echo "Join moFf result with mztab proccessed --> create moFF quant with identification result "
 
 # parse mgf, and perform join with the MS2 scan output --> create input file for moFF
 python create_input_from_mgf.py --start_folder $deployDir/moff_output --output $deployDir --type mztab
 
-comment2
+#comment2
