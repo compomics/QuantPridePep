@@ -1,5 +1,15 @@
 #!/bin/bash
 
+
+##
+# to set aliases you need add the followinf in .bashrc
+#export cdmoFFwdir="/home/compomics/moFF_multipr_rawfile" 
+
+## -- PATH where the run_pipeline.sh is launched
+#export cdInitwdir="/home/compomics/second_disk/Pride_pipeline_local"
+
+##
+
 deployDir=/home/compomics/second_disk/Pride_pipeline_local
 input_folder=${deployDir}/$1
 
@@ -13,15 +23,12 @@ if [ ! -d "$deployDir" ]; then
 	echo "MGF parsing --> creating .moff2start"
 	mkdir $deployDir
 fi
-#ls folder/submmited/*.raw | parallel mono ms2extract.exe  {1} 
 
-#<< comment
+
+<< comment
 echo "MGF parsing --> creating .moff2start"
 java -jar mzparser-1.0.0.jar  -i $input_folder -o $deployDir -m
 
-
-echo "mztab parsing --> creating .txt with identification data"
-java -jar mzparser-1.0.0.jar  -i $input_folder -o $deployDir -z
 
 echo "Extraction MS2 info from raw file --> creating .moff2scan "
 ## extraxt MS2 scan from raw file 
@@ -37,7 +44,7 @@ python create_input_from_mgf.py --start_folder $deployDir --output $deployDir --
 
 
 # note change dir in  bash : you shoudl add the script to the patch and run like.scriptname
-#comment
+
 
 cd $cdmoFFwdir
 
@@ -51,14 +58,36 @@ echo 'running moFF on all the ms2feat_input file '
 ## file .RAW capitals
 ls $deployDir/Cha2*.ms2feat_input | parallel --no-notice --joblog $deployDir/log_moff python moff.py --inputtsv {1} --inputraw $input_folder/submitted/{/.}.RAW --tol 10 --rt_w 2 --rt_p 0.4 --output_folder $deployDir/moff_output
 
+timestamp='_result'
+deployDirRes=${deployDir}/$timestamp
 
+
+comment
 
 cd $cdInitwdir
-#<< comment2
+
 
 echo "Join moFf result with mztab proccessed --> create moFF quant with identification result "
 
+# this will be replaced and this step will be done in the java code
 # parse mgf, and perform join with the MS2 scan output --> create input file for moFF
-python create_input_from_mgf.py --start_folder $deployDir/moff_output --output $deployDir --type mztab
+#python create_input_from_mgf.py --start_folder $deployDir/moff_output --output $deployDir --type mztab
 
-#comment2
+echo "mztab parsing & merging with moff result --> creating mztab.txt with quantification data"
+java -jar mzparser-1.0.0.jar  -i $input_folder -o $deployDir/moff_output -z
+
+if [[ $(ls -A $deployDir/moff_output/*.mztab) ]]; then 
+	echo "Parsing done moving on result folder"
+	timestamp='_result'
+	deployDirRes=${deployDir}/$timestamp
+	mkdir $deployDirRes
+	mv $deployDir/moff_output/*.mztab $deployDirRes
+fi
+
+
+
+
+
+
+
+
