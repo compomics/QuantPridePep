@@ -6,7 +6,8 @@ import argparse
 import fnmatch
 import pandas as pd
 
-
+#  merge ms2scan file and mgf 
+# output ms2feature file 
 
 def merge_mgf_MS2data( f1,f2,name,args):
     #open 2 file
@@ -33,6 +34,11 @@ def merge_mgf_MS2data( f1,f2,name,args):
     else:
         return -1
     #open 2
+
+# merge moff output and mztab
+# Not  used  anymore 
+# This step is actually performed in the java
+
 
 def merge_moff_mztab(f1,f2,name ,args):
     moff_df =pd.read_csv(f1,sep="\t")
@@ -65,7 +71,8 @@ def merge_moff_mztab(f1,f2,name ,args):
         return -1
 
     return 
-
+# parsing header for MGF
+# Not used used
 
 def parse_header( lista_x ,count ):
     # mass,chare,rt,mz_computed,scans
@@ -100,7 +107,8 @@ output : moff2start file with scan rt and the other info
 it return:
 [0]
 '''
-
+## parsing mfg 
+# not used anymore
 def check_scannumber(file2scan,args):
     col_list=['mz','charge','rt','mass','scan',"#spectramgf"]
     init_str='BEGIN IONS'
@@ -147,6 +155,8 @@ def check_scannumber(file2scan,args):
     f2.close()
     return (os.path.join( args.output ,output_name_mgfparsed), os.path.join(args.output, os.path.basename(file2scan).split('.')[0]+'.ms2scan'), os.path.basename(file2scan).split('.')[0] )
 
+# run methods for the mgf parsing 
+# not used anymore
 def run_parser (args):
     rt_tag=[]
     scan_tag=[]
@@ -163,7 +173,8 @@ def run_parser (args):
 
     return 0
 
-
+# run methods for the mgf  to MS2 data 
+#Still used in the pipemline
 def run_join (args):
         print args.start + '/*.moff2start'
         
@@ -182,7 +193,8 @@ def run_join (args):
                 
         return 0
 
-
+# parsing moff result with the pride.txt result (from mztab)
+# not used anymore , this step will be embedded into tha java code
 def run_join_mztab( args):
     print args.start + '/*._moff_result.txt'
     moff_proc= sorted(glob.glob(args.start + '/*_moff_result.txt' ))
@@ -214,6 +226,7 @@ if __name__ == '__main__':
     print args
     if args.type=='mgf':
         result_pride_id = run_join(args)
+    # actually not used but implemented using a java
     if args.type=='mztab':
         result_pride_id = run_join_mztab(args)
     
