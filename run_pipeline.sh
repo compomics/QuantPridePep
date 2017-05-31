@@ -25,7 +25,7 @@ if [ ! -d "$deployDir" ]; then
 fi
 
 
-<< comment
+#<< comment
 echo "MGF parsing --> creating .moff2start"
 java -jar mzparser-1.0.0.jar  -i $input_folder -o $deployDir -m
 
@@ -56,21 +56,27 @@ echo 'running moFF on all the ms2feat_input file '
 #ls $deployDir/*.ms2feat_input | parallel --no-notice --joblog $deployDir/log_moff python moff.py --inputtsv {1} --inputraw $input_folder/submitted/{/.}.raw --tol 10 --rt_w 2 --rt_p 0.4 --output_folder $deployDir/moff_output
 
 ## file .RAW capitals
-ls $deployDir/Cha2*.ms2feat_input | parallel --no-notice --joblog $deployDir/log_moff python moff.py --inputtsv {1} --inputraw $input_folder/submitted/{/.}.RAW --tol 10 --rt_w 2 --rt_p 0.4 --output_folder $deployDir/moff_output
+ls $deployDir/*.ms2feat_input | parallel --no-notice --joblog $deployDir/log_moff python moff.py --inputtsv {1} --inputraw $input_folder/submitted/{/.}.RAW --tol 10 --rt_w 2 --rt_p 0.4 --output_folder $deployDir/moff_output
 
 timestamp='_result'
 deployDirRes=${deployDir}/$timestamp
 
 
-comment
+
 
 cd $cdInitwdir
 
-
-echo "Join moFf result with mztab proccessed --> create moFF quant with identification result "
+#comment
 
 # this will be replaced and this step will be done in the java code
 # parse mgf, and perform join with the MS2 scan output --> create input file for moFF
+
+timestamp='_result'
+deployDirRes=${deployDir}/$timestamp
+mkdir $deployDirRes
+
+
+
 #python create_input_from_mgf.py --start_folder $deployDir/moff_output --output $deployDir --type mztab
 
 echo "mztab parsing & merging with moff result --> creating mztab.txt with quantification data"
@@ -78,14 +84,16 @@ java -jar mzparser-1.0.0.jar  -i $input_folder -o $deployDir/moff_output -z
 
 if [[ $(ls -A $deployDir/moff_output/*.mztab) ]]; then 
 	echo "Parsing done moving on result folder"
-	timestamp='_result'
-	deployDirRes=${deployDir}/$timestamp
-	mkdir $deployDirRes
+	#timestamp='_result'
+	#deployDirRes=${deployDir}/$timestamp
+	#mkdir $deployDirRes
 	mv $deployDir/moff_output/*.mztab $deployDirRes
 fi
 
-
-
+#if [ [   $(ls -A $deplyDir/*.ms1_quant)   ] ]; then 
+#	echo "Movinf ms1 quant file on result folder"
+#	mv $deplyDir/*.ms1_quant $deployDirRes
+#fi
 
 
 
