@@ -10,7 +10,8 @@ Required java version :
 - Java Runtime Environment (JRE) 8
 
 
-[moFF] (https://github.com/compomics/moFF/blob/multipr_rawfilereader/) should be installed separately on your machine.
+ [moFF](https://github.com/compomics/moFF/tree/multipr_rawfilereader)should be installed separately on your machine.
+
 
 Required python libraries for moFF :
 - Python 2.7
@@ -21,7 +22,7 @@ Required python libraries for moFF :
 - pymzML > 0.7.7
 
 Required library for MSFilereader by Thermo 
-mono library version 4.2.1
+- mono library version 4.2.1
  
 ---
 
@@ -42,8 +43,8 @@ The pipeline for each raw file present in the project runs the following steps:
 
 
 The ouput file  with peptde MS1 intensities and their quality measures are produced  in two format :
-.ms1_quant file ( they are basically standard moFF output file)
+- .ms1_quant file ( they are basically standard moFF output file)
 
-.mzTab file (where along with the original identified peptide information the quantitative data are added)
+- .mzTab file (where along with the original identified peptide information the quantitative data are added)
 
 
