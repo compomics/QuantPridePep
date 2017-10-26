@@ -25,7 +25,7 @@ if [ ! -d "$deployDir" ]; then
 fi
 
 
-#<< comment
+# <<comment
 echo "MGF parsing --> creating .moff2start"
 java -jar mzparser-1.0.0.jar  -i $input_folder -o $deployDir -m
 
@@ -33,9 +33,9 @@ java -jar mzparser-1.0.0.jar  -i $input_folder -o $deployDir -m
 echo "Extraction MS2 info from raw file --> creating .moff2scan "
 ## extraxt MS2 scan from raw file 
 
-#ls "$input_folder"/submitted/*.raw  | parallel --no-notice  --joblog log_ms2scan   "mono ms2extract.exe -f  {1} >  $deployDir/{/.}.ms2scan"
+ls "$input_folder"/submitted/*.raw  | parallel --no-notice  --joblog log_ms2scan   "mono ms2extract.exe -f  {1} >  $deployDir/{/.}.ms2scan"
 
-ls "$input_folder"/submitted/*.RAW  | parallel --no-notice  --joblog log_ms2scan   "mono ms2extract.exe -f  {1} >  $deployDir/{/.}.ms2scan"
+#ls "$input_folder"/submitted/*.RAW  | parallel --no-notice  --joblog log_ms2scan   "mono ms2extract.exe -f  {1} >  $deployDir/{/.}.ms2scan"
 
 echo "Join moFF2start with ms2scan --> create moFf input"
 
@@ -53,10 +53,10 @@ cd $cdmoFFwdir
 # run moFF for all the moFf input file 
 echo 'running moFF on all the ms2feat_input file '
 ## file .raw
-#ls $deployDir/*.ms2feat_input | parallel --no-notice --joblog $deployDir/log_moff python moff.py --inputtsv {1} --inputraw $input_folder/submitted/{/.}.raw --tol 10 --rt_w 2 --rt_p 0.4 --output_folder $deployDir/moff_output
+ls $deployDir/*.ms2feat_input | parallel --no-notice --joblog $deployDir/log_moff python moff.py --inputtsv {1} --inputraw $input_folder/submitted/{/.}.raw --tol 10 --rt_w 2 --rt_p 1 --output_folder $deployDir/moff_output
 
 ## file .RAW capitals
-ls $deployDir/*.ms2feat_input | parallel --no-notice --joblog $deployDir/log_moff python moff.py --inputtsv {1} --inputraw $input_folder/submitted/{/.}.RAW --tol 10 --rt_w 2 --rt_p 0.4 --output_folder $deployDir/moff_output
+#ls $deployDir/*.ms2feat_input | parallel --no-notice --joblog $deployDir/log_moff python moff.py --inputtsv {1} --inputraw $input_folder/submitted/{/.}.RAW --tol 10 --rt_w 2 --rt_p 0.4 --output_folder $deployDir/moff_output
 
 timestamp='_result'
 deployDirRes=${deployDir}/$timestamp
@@ -66,36 +66,43 @@ deployDirRes=${deployDir}/$timestamp
 
 cd $cdInitwdir
 
-#comment
+
 
 # this will be replaced and this step will be done in the java code
 # parse mgf, and perform join with the MS2 scan output --> create input file for moFF
+
+#comment
 
 timestamp='_result'
 deployDirRes=${deployDir}/$timestamp
 mkdir $deployDirRes
 
 
+echo 'Creating output as tabular format ( ms1_quant) '
+java -jar  mzparser-1.0.0.jar  -i $input_folder -o $deployDir/moff_output -s
+python create_input_from_mgf.py --start_folder $deployDir/moff_output --output $deployDir/moff_output --type mztab
 
-#python create_input_from_mgf.py --start_folder $deployDir/moff_output --output $deployDir --type mztab
+
+#<<comment1
 
 echo "mztab parsing & merging with moff result --> creating mztab.txt with quantification data"
 java -jar mzparser-1.0.0.jar  -i $input_folder -o $deployDir/moff_output -z
 
 if [[ $(ls -A $deployDir/moff_output/*.mztab) ]]; then 
-	echo "Parsing done moving on result folder"
+	echo "Parsing done moving in result folder"
 	#timestamp='_result'
 	#deployDirRes=${deployDir}/$timestamp
 	#mkdir $deployDirRes
 	mv $deployDir/moff_output/*.mztab $deployDirRes
 fi
 
-#if [ [   $(ls -A $deplyDir/*.ms1_quant)   ] ]; then 
-#	echo "Movinf ms1 quant file on result folder"
-#	mv $deplyDir/*.ms1_quant $deployDirRes
-#fi
+if [[  $(ls -A $deployDir/moff_output/*.ms1_quant)  ]]; then 
+	echo "Moving ms1 quant file into result folder"
+	mv $deployDir/moff_output/*.ms1_quant $deployDirRes
+
+fi
 
 
-
+#comment1
 
 
