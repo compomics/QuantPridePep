@@ -44,7 +44,7 @@ def merge_moff_mztab(f1,f2,name ,args):
     moff_df =pd.read_csv(f1,sep="\t")
     mztab_df =pd.read_csv(f2,sep="\t")
     print 'input mztab',mztab_df.shape, 'moff output',moff_df.shape
-    print 'moff output', moff_df['#spectraindex'].min(),  moff_df['#spectraindex'].max(), moff_df['#spectraindex'].unique().shape
+    print 'moff output min spectaIndex ' , moff_df['#spectraindex'].min(), 'max SpectraIndex',  moff_df['#spectraindex'].max(), '#uniqueIndex',moff_df['#spectraindex'].unique().shape
     moff_df['#spectraindex']= moff_df['#spectraindex'].astype('int64')
     moff_df['charge'] = moff_df['charge'].str.split('+').str[0]
     moff_df['charge'] =  moff_df['charge'].astype('int64')
@@ -53,13 +53,13 @@ def merge_moff_mztab(f1,f2,name ,args):
     #print mztab_df["spectraRef"].str.split('=').str[1].shape
     mztab_df['#spectraindex']=  mztab_df["spectraRef"].str.split('=').str[1]
     mztab_df['#spectraindex']= mztab_df['#spectraindex'].astype('int64')
-    print  'mztab',mztab_df['#spectraindex'].min(),  mztab_df['#spectraindex'].max(), mztab_df['#spectraindex'].unique().shape
+    print  'mztab  min spectaIndex ',mztab_df['#spectraindex'].min(), 'max SpectraIndex',  mztab_df['#spectraindex'].max(), '#uniqueIndex',mztab_df['#spectraindex'].unique().shape
     #mztab_df.columns= ['prot',  'expMZ'   ,'calcMZ',  'modification' ,'peptide charge', 'spectraRef']
     # prot    expMZ   calcMZ  modification    peptide charge  spectraRef
     test= pd.merge(mztab_df,moff_df,on=['#spectraindex','charge' ],how='left')
     #print test['intensity'][pd.isnull(test['intensity'])].shape
     # filtering moff -1
-    print 'missing hit',test[test['intensity']==-1].shape
+    print 'missing hit on moFF',test[test['intensity']==-1].shape
     #print 'missing hit',test[test['intensity']==-1]
     if test.shape [0] == mztab_df.shape[0]:
         test = test[test['intensity'] !=-1]
@@ -199,17 +199,21 @@ def run_join_mztab( args):
     print args.start + '/*._moff_result.txt'
     moff_proc= sorted(glob.glob(args.start + '/*_moff_result.txt' ))
     mztab_proc= sorted(glob.glob(args.output + '/*.pride.txt' ))
-    print len (moff_proc),len(mztab_proc)
+    #print moff_proc 
+    #print '----- // -----'
+    #print mztab_proc
     #print mgf_proc[0]
     #print  scan_proc[0]
     for ii in range(0,len(moff_proc)):
-        print '\t', moff_proc[ii],mztab_proc[ii]      
-        # res containes the path and file name for the two file of the marging and just the name of 
-        final_data = merge_moff_mztab(moff_proc[ii],mztab_proc[ii],os.path.basename(mztab_proc[ii]).split('.')[0] ,args)
-        if final_data == -1:
-            exit('Error : Joinning failed No input file for ',name)
+        #print '\t', moff_proc[ii]
+        res =  [ s for s in mztab_proc  if os.path.basename(moff_proc[ii]).split('_moff_result.txt')[0]  in s]
+        if len(res) >= 1:
+            print 'merging between ',  moff_proc[ii], res[0]
+            final_data = merge_moff_mztab(moff_proc[ii],res[0],os.path.basename(res[0]).split('.')[0] ,args)
+            if final_data == -1:
+                exit('Error : Merging failed No input file for ',name)
+            # res containes the path and file name for the two file of the marging and just the name of 
     return 0
-    
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Checking rt or scan number throw the Pride dataset ')
