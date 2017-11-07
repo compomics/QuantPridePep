@@ -38,7 +38,7 @@ def run_pipeline( prj_loc,log, DATAINPUT_LOC,  DATAOUTPUT_LOC, START_LOC , moFF_
     else:
         output_folder = os.path.join(DATAOUTPUT_LOC, prj_loc    + '_moFF'  )
     
-    input_folder = os.path.join( DATAOUTPUT_LOC, prj_loc  )
+    input_folder = os.path.join( DATAINPUT_LOC, prj_loc  )
     
     result_folder = os.path.join(output_folder,  'result'  )
     if not (os.path.isdir(  result_folder   )):
