@@ -14,8 +14,6 @@ log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
 
 
-#START_LOC = os.environ.get('START_LOC', '/home/compomics/second_disk/Pride_pipeline_local')
-#moFF_PATH = os.environ.get('moFF_PATH', '/home/compomics/moFF_multipr_rawfile')
 
 
 
