@@ -31,7 +31,7 @@ def run_command ( cmd ,  msg_cmd ,  log , flag_shell = False):
     
 
 def run_pipeline( prj_loc,log, DATAINPUT_LOC,  DATAOUTPUT_LOC, START_LOC , moFF_PATH  ):
-    log.critical( '%s', START_LOC   )
+     
     if not (os.path.isdir(   os.path.join( DATAOUTPUT_LOC, prj_loc  +'_moFF'  )   )): 
         os.makedirs(os.path.join(DATAOUTPUT_LOC, prj_loc +'_moFF'  ))
         output_folder = os.path.join(DATAOUTPUT_LOC, prj_loc    + '_moFF'  )
@@ -141,7 +141,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='moFF-Pride pipeline')
 
     parser.add_argument('--f', dest='file_prj_id', action='store',help=' file contains a list of valid PXDxxx id', required=False)
-    parser.add_argument('--docker_run', dest='docker_run_mode', action='store', default=0,  help='flag to activate/deactivate docker setting', required=True)
+    parser.add_argument('--docker_run', dest='docker_run_mode', action='store', type= int , default=0,  help='flag to activate/deactivate docker setting', required=True)
     
     parser.add_argument('--output_location', dest='output_loc', action='store',   help='input folder e.g where all PXDxx folder are located', required=True)
     parser.add_argument('--input_location', dest='input_loc', action='store',   help='output folder e.g where to all the moFF result for each project ', required=True)
@@ -159,14 +159,14 @@ if __name__ == '__main__':
     DATAINPUT_LOC = os.environ.get('DATAINPUT_LOC', args.input_loc  )
     DATAOUTPUT_LOC = os.environ.get('DATAOUTPUT_LOC', args.output_loc )
     
-    
+        
     ch = logging.StreamHandler()
     ch.setLevel(logging.ERROR)
     formatter = logging.Formatter('%(asctime)s - %(name)s  - %(message)s')
     ch.setFormatter( formatter)
     log.addHandler(ch)
     
-
+    log.critical( 'pipeline folder : %s |  moFF path :  %s', START_LOC , moFF_PATH  )
     list_pxdID=['PXD004612']
     for pxd_id in list_pxdID:
         run_pipeline( pxd_id  ,log, DATAINPUT_LOC,  DATAOUTPUT_LOC, START_LOC , moFF_PATH) 
