@@ -7,7 +7,7 @@ import subprocess
 import shlex 
 import logging
 import argparse
-
+import glob
 
 
 log = logging.getLogger(__name__)
@@ -22,15 +22,15 @@ def run_command ( cmd ,  msg_cmd ,  log , flag_shell = False):
     p= subprocess.Popen( cmd , stdout=subprocess.PIPE,stderr= subprocess.PIPE, shell = flag_shell )  
     output,err = p.communicate( )
     if p.returncode != 0:
-        log.critical(  msg_cmd +' ERROR %s', err  )
-        log.critical(' %s', output  )
+        log.info('   ' + msg_cmd +' ERROR %s', err  )
+        log.info('    %s', output  )
         return 1
     else:
-        log.critical( msg_cmd +  ' -->  DONE'  )
+        log.info('   ' + msg_cmd +  ' -->  DONE'  )
         return 0
     
 
-def run_pipeline( prj_loc,log, DATAINPUT_LOC,  DATAOUTPUT_LOC, START_LOC , moFF_PATH  ):
+def run_pipeline( prj_loc,log, DATAINPUT_LOC,  DATAOUTPUT_LOC, START_LOC , moFF_PATH ,flag_prod ):
      
     if not (os.path.isdir(   os.path.join( DATAOUTPUT_LOC, prj_loc  +'_moFF'  )   )): 
         os.makedirs(os.path.join(DATAOUTPUT_LOC, prj_loc +'_moFF'  ))
@@ -45,12 +45,12 @@ def run_pipeline( prj_loc,log, DATAINPUT_LOC,  DATAOUTPUT_LOC, START_LOC , moFF_
         os.makedirs(result_folder)
     
         
-    log.critical( 'Prj %s  -->  setting input folder  %s',  prj_loc, input_folder )
-    log.critical( 'Prj %s  --> setting output folder %s',  prj_loc,output_folder )
+    #log.info( '   Prj %s  -->  setting input folder  %s',  prj_loc, input_folder )
+    #log.info( '   Prj %s  --> setting output folder %s',  prj_loc,output_folder )
     
     # 1 step
     args= shlex.split( "java -jar  mzparser-1.0.0.jar" + " -i " + input_folder  + " -o " + output_folder  + " -m"  )
-    code_exec = run_command ( args, 'parsing mgf file by mzparser-1.0.0.jar',  log,  False )
+    code_exec = run_command ( args, '  Parsing mgf file by mzparser-1.0.0.jar',  log,  False )
     
 
     if  code_exec== 1:
@@ -72,36 +72,41 @@ def run_pipeline( prj_loc,log, DATAINPUT_LOC,  DATAOUTPUT_LOC, START_LOC , moFF_
     else:
         cmd = " ls " + os.path.join(input_folder, "submitted/") + "*.RAW | parallel --no-notice --joblog "+ os.path.join(output_folder ,"log_ms2scan")  + "  \" mono " +  os.path.join(START_LOC, "ms2extract.exe") + " -f {1}  > " + output_folder + "/{/.}.ms2scan \" " 
     
-    code_exec =  run_command( cmd, 'creating ms2scan file by ms2extractor', log, True  )
+    code_exec =  run_command( cmd, '  Creating ms2scan file by ms2extractor', log, True  )
 
     if  code_exec== 1:
         return ( 0 )
 
     # 3 step 
     cmd = "python create_input_from_mgf.py --start_folder " + output_folder   +" --output " +  output_folder + " --type mgf "
-    code_exec = run_command(  cmd, 'creating moFF input ',log,True )
+    code_exec = run_command(  cmd, '  Creating moFF input ',log,True )
 
     if  code_exec== 1:
         return ( 0 )
 
     
     #4 step
+    
+        
 
     if cap_flag ==0: 
-        cmd = " ls " + output_folder + "/*.ms2feat_input | parallel --no-notice --joblog "+ os.path.join(output_folder ,"log_moFF")  + " python " +  os.path.join(moFF_PATH ,'moff.py') + " --inputtsv {1}  --inputraw "+ input_folder + "/submitted/{/.}.raw --tol 10 --rt_w 2 --rt_p 1 --output_folder " + os.path.join(output_folder,'moff_output')
+        cmd = " ls " + output_folder + "/*.ms2feat_input | parallel --no-notice  -j 3  --joblog "+ os.path.join(output_folder ,"log_moFF")  + " python " +  os.path.join(moFF_PATH ,'moff.py') + " --inputtsv {1}  --inputraw "+ input_folder + "/submitted/{/.}.raw --tol 10 --rt_w 2 --rt_p 1 --output_folder " + os.path.join(output_folder,'moff_output')
     else:
-        cmd = " ls " + output_folder + "/*.ms2feat_input | parallel --no-notice --joblog "+ os.path.join(output_folder ,"log_moFF")  + " python " +  os.path.join(moFF_PATH ,'moff.py') + " --inputtsv {1}  --inputraw "+ input_folder + "/submitted/{/.}.RAW --tol 10 --rt_w 2 --rt_p 1 --output_folder " + os.path.join(output_folder,'moff_output')
+        cmd = " ls " + output_folder + "/*.ms2feat_input | parallel --no-notice  -j 3  --joblog "+ os.path.join(output_folder ,"log_moFF")  + " python " +  os.path.join(moFF_PATH ,'moff.py') + " --inputtsv {1}  --inputraw "+ input_folder + "/submitted/{/.}.RAW --tol 10 --rt_w 2 --rt_p 1 --output_folder " + os.path.join(output_folder,'moff_output')
 
-    code_exec =run_command( cmd, ' moFF  ' ,log, True  )
+    code_exec =run_command( cmd, '  Running moFF ' ,log, True  )
 
     if  code_exec== 1:
         return ( 0 )
  
     #5 step  
     
-    cmd= "java -jar  mzparser-1.0.0.jar  -i " + input_folder  + " -o "+ output_folder +"/moff_output"  + " -s"
+    if flag_prod == 1:
+        cmd= "java -jar mzparser-internal-1.0.0.jar  -i " + input_folder  + " -o "+ output_folder +"/moff_output"  + " -s"
+    else:
+        cmd= "java -jar  mzparser-1.0.0.jar  -i " + input_folder  + " -o "+ output_folder +"/moff_output"  + " -s"
     
-    code_exec = run_command(cmd, ' Parsing mzTAB data for ms1_quant output ' , log   , True   )
+    code_exec = run_command(cmd, '  Parsing mzTAB data for ms1_quant output ' , log   , True   )
     if  code_exec== 1:
         return ( 0 )
 
@@ -109,12 +114,16 @@ def run_pipeline( prj_loc,log, DATAINPUT_LOC,  DATAOUTPUT_LOC, START_LOC , moFF_
 
     cmd =  "python create_input_from_mgf.py  --start_folder " + os.path.join(output_folder,'moff_output')  + " --output " + os.path.join(output_folder,"moff_output") + " --type mztab "
     
-    code_exec =  run_command( cmd, 'Creating ms1_quant output '  ,log , True )
+    code_exec =  run_command( cmd, '  Creating ms1_quant output '  ,log , True )
     if  code_exec== 1:
         return ( 0 )
 
     #7 step 
-    cmd = "java -jar  mzparser-1.0.0.jar  -i " + input_folder  + " -o " +  output_folder +"/moff_output"  + " -z"
+
+    if flag_prod == 1:
+        cmd = "java -jar  mzparser-internal-1.0.0.jar  -i " + input_folder  + " -o " +  output_folder +"/moff_output"  + " -z"
+    else:
+        cmd = "java -jar  mzparser-1.0.0.jar  -i " + input_folder  + " -o " +  output_folder +"/moff_output"  + " -z"
 
     code_exec = run_command(cmd,'Creating mzTAB output', log, True)
     if  code_exec== 1:
@@ -122,14 +131,14 @@ def run_pipeline( prj_loc,log, DATAINPUT_LOC,  DATAOUTPUT_LOC, START_LOC , moFF_
         
     # 8 step    
     cmd = "  mv " +   os.path.join(output_folder,'moff_output') +  "/*.mztab "+  result_folder     
-    code_exec = run_command( cmd,'Move result mzTab file ' ,log , True  )
+    code_exec = run_command( cmd,'  Move result mzTab file ' ,log , True  )
     if  code_exec== 1:
         return ( 0 )
         
 
     #8 step     
     cmd= "  mv " +   os.path.join(output_folder,'moff_output') +  "/*.ms1_quant " + result_folder
-    code_exec = run_command(  cmd, 'Move result ms1_quant file', log,  True )
+    code_exec = run_command(  cmd, '  Move result ms1_quant file', log,  True )
     if  code_exec== 1:
         return ( 0 )
 
@@ -146,6 +155,8 @@ if __name__ == '__main__':
     parser.add_argument('--output_location', dest='output_loc', action='store',   help='input folder e.g where all PXDxx folder are located', required=True)
     parser.add_argument('--input_location', dest='input_loc', action='store',   help='output folder e.g where to all the moFF result for each project ', required=True)
 
+    parser.add_argument('--prod_env', dest='prod_env', type= int , default=0 ,  action='store', help='set if you run on production env. mztab file are located on internal',required=True  )
+
     args = parser.parse_args()
 
     if args.docker_run_mode ==1:
@@ -154,24 +165,38 @@ if __name__ == '__main__':
     else:
         # change with your apropiate location.
         START_LOC = os.environ.get('START_LOC', '/home/compomics/second_disk/Pride_pipeline_local')
-        moFF_PATH = os.environ.get('moFF_PATH', '/home/compomics/moFF_multipr_rawfile')
+        moFF_PATH = os.environ.get('moFF_PATH', '/home/compomics/moFF_master')
         
     DATAINPUT_LOC = os.environ.get('DATAINPUT_LOC', args.input_loc  )
     DATAOUTPUT_LOC = os.environ.get('DATAOUTPUT_LOC', args.output_loc )
     
         
-    ch = logging.StreamHandler()
+    ch = logging.StreamHandler( sys.stdout ) 
     ch.setLevel(logging.ERROR)
-    formatter = logging.Formatter('%(asctime)s - %(name)s  - %(message)s')
+    formatter = logging.Formatter('%(asctime)s - moFF-PRIDE pipeline - %(message)s')
     ch.setFormatter( formatter)
+    fh = logging.FileHandler('moFF_pride_pipeline.log', mode='w',)
+    fh.setFormatter( formatter)
+    fh.setLevel(logging.INFO)
     log.addHandler(ch)
-    
+    log.addHandler(fh)
+
     log.critical( 'pipeline folder : %s |  moFF path :  %s', START_LOC , moFF_PATH  )
-    list_pxdID=['PXD004612']
+
+    if args.file_prj_id:
+        f = open( args.file_prj_id , "r")
+        list_pxdID = f.read().splitlines()
+        f.close()
+    else:
+        ##  option for testing specific spec. PXD id 
+        list_pxdID=['PXD004741','PXD005521']
     for pxd_id in list_pxdID:
-        run_pipeline( pxd_id  ,log, DATAINPUT_LOC,  DATAOUTPUT_LOC, START_LOC , moFF_PATH) 
-
-
+        log.critical( ' start processing : %s', pxd_id  )
+        status = run_pipeline( pxd_id  ,log, DATAINPUT_LOC,  DATAOUTPUT_LOC, START_LOC , moFF_PATH,args.prod_env ) 
+        if status == 1:
+            log.critical(' >> ended  correctly  : %s', pxd_id  )
+        else: 
+            log.critical(' >> error occured in : >>  %s', pxd_id )
 
 
 
