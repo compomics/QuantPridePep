@@ -13,8 +13,11 @@ def merge_mgf_MS2data( f1,f2,name,args):
     #open 2 file
     mgf_df =pd.read_csv(f1,sep="\t")
     ms2raw_df =pd.read_csv(f2,sep="\t",header=None,names=['SCANS', 'time','masterScan', 'ionizationMode', 'precursorMass', 'monoisotopicMass', 'collisionEnergy', 'isolationWidth'])
-    print mgf_df.shape, ms2raw_df.shape
+    #print mgf_df.shape, ms2raw_df.shape
     # convert to int the scan number
+    if mgf_df.SCANS.any() == 'null':
+        print '\t  ','SCAN Id not available in the mgf file for ', f1
+        return -1
     ms2raw_df['SCANS']= ms2raw_df['SCANS'].astype('int64')
     mgf_df['SCANS']= mgf_df['SCANS'].astype('int64')
     #print mgf_df[mgf_df['INDEX']== 1004]
@@ -22,8 +25,8 @@ def merge_mgf_MS2data( f1,f2,name,args):
     #  SQL left join . mgf_df drives the join result
     test= pd.merge(mgf_df,ms2raw_df,on='SCANS',how='left')
     #print test.head(5)
-    test= test[['CHARGE','INDEX','time','precursorMass']]
-    test.columns= ['charge','#spectraindex','rt','mz']
+    test= test[['CHARGE','INDEX','time','precursorMass','SCANS']]
+    test.columns= ['charge','#spectraindex','rt','mz','scan']
     #print test[test['#spectraindex']==1004]
     #print test.columns
     #print 'Join df cleaned',test.shape
@@ -174,22 +177,22 @@ def run_parser (args):
     return 0
 
 # run methods for the mgf  to MS2 data 
-#Still used in the pipemline
+#Still used in the pipeline
 def run_join (args):
         print args.start + '/*.moff2start'
         
         mgf_proc= sorted(glob.glob(args.start + '/*.moff2start' ))
         scan_proc= sorted(glob.glob(args.start + '/*.ms2scan' ))
         print len (mgf_proc),len(scan_proc)
-        print mgf_proc[0]
-        print  scan_proc[0]
+        #print mgf_proc[0]
+        #print  scan_proc[0]
         for ii in range(0,len(mgf_proc)):
             print '\t', mgf_proc[ii],scan_proc[ii]
             
             # res containes the path and file name for the two file of the marging and just the name of file
             final_data = merge_mgf_MS2data(mgf_proc[ii],scan_proc[ii],os.path.basename(mgf_proc[ii]).split('.')[0] ,args)
             if final_data == -1:
-                exit('Error : Joinning failed No input file for ',name)
+                exit('Error : Join failed No input file for ' + mgf_proc[ii] )
                 
         return 0
 
@@ -211,7 +214,7 @@ def run_join_mztab( args):
             print 'merging between ',  moff_proc[ii], res[0]
             final_data = merge_moff_mztab(moff_proc[ii],res[0],os.path.basename(res[0]).split('.')[0] ,args)
             if final_data == -1:
-                exit('Error : Merging failed No input file for ',name)
+                exit('Error : Merging failed No input file for ' +  moff_proc[ii],res[0]  )
             # res containes the path and file name for the two file of the marging and just the name of 
     return 0
 
@@ -224,7 +227,6 @@ if __name__ == '__main__':
     parser.add_argument('--output', dest='output', action='store',
                                     help='specify the output folder of the prepproccesed files  REQUIRED]', required=True)
     parser.add_argument('--type',dest='type',action='store',help='Specify the type of merge:  mgf ( join mgf -> scan data)  mztab(join moff -> mztab REQUIRED',required=True )
-
 
     args = parser.parse_args()
     print args
