@@ -5,9 +5,37 @@ import re
 import argparse
 import fnmatch
 import pandas as pd
-
+import numpy as np
 #  merge ms2scan file and mgf 
 # output ms2feature file 
+
+
+def preproc_MS2data2moFF ( f1,name ) : 
+    ms2raw_df =pd.read_csv(f1,sep="\t",header=None,names=['SCANS', 'time','masterScan', 'ionizationMode', 'precursorMass', 'monoisotopicMass', 'collisionEnergy', 'isolationWidth'])
+    ms2raw_df['CHARGE']=np.nan
+    ms2raw_df['INDEX']=np.nan
+    ms2raw_df = ms2raw_df[['CHARGE','INDEX','time','precursorMass','SCANS']]
+    ms2raw_df.columns= ['charge','#spectraindex','rt','mz','scan']
+    ms2raw_df.to_csv(os.path.join(args.output, os.path.basename(name +'.ms2feat_input')) ,sep='\t',index=False )
+    return 0
+
+
+
+def merge_mgf_moFFquant( f1,f2,name,args):
+    mgf_df =pd.read_csv(f1,sep="\t")
+    if mgf_df.SCANS.any() == 'null':
+        print '\t  Input file is based ONLY of ms2 scan for ',f1
+        return 2
+    #print  mgf_df.columns
+    mgf_df.drop(['RTINSECONDS','PEPMASS'],axis=1,inplace=True)
+    mgf_df.columns = ['#spectraindex','scan','charge']
+    #print mgf_df.head()
+    ms2raw_moff= pd.read_csv(f2,sep="\t")
+    test= pd.merge(mgf_df,ms2raw_moff[['scan','rt','mz','intensity','rt_peak','lwhm','rwhm','5p_noise','10p_noise','SNR','log_L_R','log_int']],on='scan',how='left')
+    ## attention I over write the result of moFF  
+    test.to_csv(os.path.join(args.output, os.path.basename(name +'_moff_result_ms2id.txt')) ,sep='\t',index=False )
+    return 0
+
 
 def merge_mgf_MS2data( f1,f2,name,args):
     #open 2 file
@@ -17,7 +45,13 @@ def merge_mgf_MS2data( f1,f2,name,args):
     # convert to int the scan number
     if mgf_df.SCANS.any() == 'null':
         print '\t  ','SCAN Id not available in the mgf file for ', f1
-        return -1
+        print '\t  Input file is based ONLY of ms2 scan'
+        ms2raw_df['CHARGE']=np.nan
+        ms2raw_df['INDEX']=np.nan
+        ms2raw_df = ms2raw_df[['CHARGE','INDEX','time','precursorMass','SCANS']]
+        ms2raw_df.columns= ['charge','#spectraindex','rt','mz','scan']
+        ms2raw_df.to_csv(os.path.join(args.output, os.path.basename(name +'.ms2feat_input')) ,sep='\t',index=False )
+        return 2
     ms2raw_df['SCANS']= ms2raw_df['SCANS'].astype('int64')
     mgf_df['SCANS']= mgf_df['SCANS'].astype('int64')
     #print mgf_df[mgf_df['INDEX']== 1004]
@@ -46,8 +80,8 @@ def merge_mgf_MS2data( f1,f2,name,args):
 def merge_moff_mztab(f1,f2,name ,args):
     moff_df =pd.read_csv(f1,sep="\t")
     mztab_df =pd.read_csv(f2,sep="\t")
-    print 'input mztab',mztab_df.shape, 'moff output',moff_df.shape
-    print 'moff output min spectaIndex ' , moff_df['#spectraindex'].min(), 'max SpectraIndex',  moff_df['#spectraindex'].max(), '#uniqueIndex',moff_df['#spectraindex'].unique().shape
+    #print 'input mztab',mztab_df.shape, 'moff output',moff_df.shape
+    #print 'moff output min spectaIndex ' , moff_df['#spectraindex'].min(), 'max SpectraIndex',  moff_df['#spectraindex'].max(), '#uniqueIndex',moff_df['#spectraindex'].unique().shape
     moff_df['#spectraindex']= moff_df['#spectraindex'].astype('int64')
     moff_df['charge'] = moff_df['charge'].str.split('+').str[0]
     moff_df['charge'] =  moff_df['charge'].astype('int64')
@@ -56,13 +90,13 @@ def merge_moff_mztab(f1,f2,name ,args):
     #print mztab_df["spectraRef"].str.split('=').str[1].shape
     mztab_df['#spectraindex']=  mztab_df["spectraRef"].str.split('=').str[1]
     mztab_df['#spectraindex']= mztab_df['#spectraindex'].astype('int64')
-    print  'mztab  min spectaIndex ',mztab_df['#spectraindex'].min(), 'max SpectraIndex',  mztab_df['#spectraindex'].max(), '#uniqueIndex',mztab_df['#spectraindex'].unique().shape
+    #print  'mztab  min spectaIndex ',mztab_df['#spectraindex'].min(), 'max SpectraIndex',  mztab_df['#spectraindex'].max(), '#uniqueIndex',mztab_df['#spectraindex'].unique().shape
     #mztab_df.columns= ['prot',  'expMZ'   ,'calcMZ',  'modification' ,'peptide charge', 'spectraRef']
     # prot    expMZ   calcMZ  modification    peptide charge  spectraRef
     test= pd.merge(mztab_df,moff_df,on=['#spectraindex','charge' ],how='left')
     #print test['intensity'][pd.isnull(test['intensity'])].shape
     # filtering moff -1
-    print 'missing hit on moFF',test[test['intensity']==-1].shape
+    #print 'missing hit on moFF',test[test['intensity']==-1].shape
     #print 'missing hit',test[test['intensity']==-1]
     if test.shape [0] == mztab_df.shape[0]:
         test = test[test['intensity'] !=-1]
@@ -176,31 +210,56 @@ def run_parser (args):
 
     return 0
 
+
+# run method to pre proc. MS2 data into feat input
+
+
+def run_preproc (args):
+    print args.start + '/*.ms2scan'
+            #mgf_proc= sorted(glob.glob(args.start + '/*.moff2start' ))
+    scan_proc= sorted(glob.glob(args.start + '/*.ms2scan' ))
+            #print len (mgf_proc),len(scan_proc)
+            #print mgf_proc[0]
+            #print  scan_proc[0]
+    for ii in range(0,len(scan_proc)):
+        print '\t', scan_proc[ii]
+        final_data =  preproc_MS2data2moFF ( scan_proc[ii],os.path.basename(scan_proc[ii]).split('.')[0] )
+        if final_data == -1:
+            print 'Error : preproc failed  for ' , scan_proc[ii]
+            exit(1 )
+    return 1
+                                                                                                                                                                                                         
+
 # run methods for the mgf  to MS2 data 
 #Still used in the pipeline
 def run_join (args):
         print args.start + '/*.moff2start'
         
         mgf_proc= sorted(glob.glob(args.start + '/*.moff2start' ))
-        scan_proc= sorted(glob.glob(args.start + '/*.ms2scan' ))
-        print len (mgf_proc),len(scan_proc)
+        scan_proc= sorted(glob.glob(args.start + '/moff_output/*_moff_result.txt' ))
+        #print len (mgf_proc),len(scan_proc)
         #print mgf_proc[0]
         #print  scan_proc[0]
         for ii in range(0,len(mgf_proc)):
-            print '\t', mgf_proc[ii],scan_proc[ii]
+            #print '\t', mgf_proc[ii],scan_proc[ii]
             
             # res containes the path and file name for the two file of the marging and just the name of file
-            final_data = merge_mgf_MS2data(mgf_proc[ii],scan_proc[ii],os.path.basename(mgf_proc[ii]).split('.')[0] ,args)
+            final_data = merge_mgf_moFFquant( mgf_proc[ii],scan_proc[ii],os.path.basename(mgf_proc[ii]).split('.')[0] ,args )
+            #final_data = merge_mgf_MS2data(mgf_proc[ii],scan_proc[ii],os.path.basename(mgf_proc[ii]).split('.')[0] ,args)
             if final_data == -1:
-                exit('Error : Join failed No input file for ' + mgf_proc[ii] )
-                
-        return 0
+                print 'Error : Join failed No input file for ' , mgf_proc[ii] 
+                exit(1 )
+
+        if final_data==2:
+            return 1
+        else:
+            return 0
 
 # parsing moff result with the pride.txt result (from mztab)
 # not used anymore , this step will be embedded into tha java code
 def run_join_mztab( args):
-    print args.start + '/*._moff_result.txt'
-    moff_proc= sorted(glob.glob(args.start + '/*_moff_result.txt' ))
+    print args.start + '/*_moff_result_ms2id.txt'
+    moff_proc= sorted(glob.glob(args.start + '/*_moff_result_ms2id.txt' ))
     mztab_proc= sorted(glob.glob(args.output + '/*.pride.txt' ))
     #print moff_proc 
     #print '----- // -----'
@@ -209,12 +268,13 @@ def run_join_mztab( args):
     #print  scan_proc[0]
     for ii in range(0,len(moff_proc)):
         #print '\t', moff_proc[ii]
-        res =  [ s for s in mztab_proc  if os.path.basename(moff_proc[ii]).split('_moff_result.txt')[0]  in s]
+        res =  [ s for s in mztab_proc  if os.path.basename(moff_proc[ii]).split('_moff_result_ms2id.txt')[0]  in s]
         if len(res) >= 1:
             print 'merging between ',  moff_proc[ii], res[0]
             final_data = merge_moff_mztab(moff_proc[ii],res[0],os.path.basename(res[0]).split('.')[0] ,args)
             if final_data == -1:
-                exit('Error : Merging failed No input file for ' +  moff_proc[ii],res[0]  )
+                print 'Error : Merging failed No input file for ' ,  moff_proc[ii],res[0]  
+                exit(1)
             # res containes the path and file name for the two file of the marging and just the name of 
     return 0
 
@@ -229,11 +289,19 @@ if __name__ == '__main__':
     parser.add_argument('--type',dest='type',action='store',help='Specify the type of merge:  mgf ( join mgf -> scan data)  mztab(join moff -> mztab REQUIRED',required=True )
 
     args = parser.parse_args()
-    print args
+    #print args
+
+    if args.type=='prems2':
+        result_pride_id = run_preproc ( args )
+
     if args.type=='mgf':
         result_pride_id = run_join(args)
     # actually not used but implemented using a java
     if args.type=='mztab':
         result_pride_id = run_join_mztab(args)
+    if result_pride_id == 1:
+        exit(2) # special case fla
+    else:
+        exit(0)  #" good exit no erroe  
     
 
