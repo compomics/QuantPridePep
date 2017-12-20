@@ -15,23 +15,29 @@ log.setLevel(logging.DEBUG)
 
 
 
-
+## output is a tupple 
+## erro_code , Flag_for_only_MS2_scan_available
 
 def run_command ( cmd ,  msg_cmd ,  log , flag_shell = False):
-    
-    p= subprocess.Popen( cmd , stdout=subprocess.PIPE,stderr= subprocess.PIPE, shell = flag_shell )  
+    p= subprocess.Popen( cmd ,stdout=subprocess.PIPE,stderr= subprocess.PIPE, shell = flag_shell )  
     output,err = p.communicate( )
-    if p.returncode != 0:
-        log.info('   ' + msg_cmd +' ERROR %s', err  )
-        log.info('    %s', output  )
-        return 1
-    else:
+    if p.returncode == 2:
         log.info('   ' + msg_cmd +  ' -->  DONE'  )
-        return 0
+        return (0,True)
+        ## 
+    else:
+        if p.returncode != 0:
+            log.info('   ' + msg_cmd +' ERROR %s', err  )
+            log.info('    %s', output  )
+            return (1,False)
+        else:
+            log.info('   ' + msg_cmd +  ' -->  DONE'  )
+            return (0,False)
     
 
 def run_pipeline( prj_loc,log, DATAINPUT_LOC,  DATAOUTPUT_LOC, START_LOC , moFF_PATH ,flag_prod ):
      
+    skip_steps_flag = False
     if not (os.path.isdir(   os.path.join( DATAOUTPUT_LOC, prj_loc  +'_moFF'  )   )): 
         os.makedirs(os.path.join(DATAOUTPUT_LOC, prj_loc +'_moFF'  ))
         output_folder = os.path.join(DATAOUTPUT_LOC, prj_loc    + '_moFF'  )
@@ -47,102 +53,115 @@ def run_pipeline( prj_loc,log, DATAINPUT_LOC,  DATAOUTPUT_LOC, START_LOC , moFF_
         
     #log.info( '   Prj %s  -->  setting input folder  %s',  prj_loc, input_folder )
     #log.info( '   Prj %s  --> setting output folder %s',  prj_loc,output_folder )
-    
-    # 1 step
-    args= shlex.split( "java -jar  mzparser-1.0.0.jar" + " -i " + input_folder  + " -o " + output_folder  + " -m"  )
-    code_exec = run_command ( args, '  Parsing mgf file by mzparser-1.0.0.jar',  log,  False )
-    
-
-    if  code_exec== 1:
-        return ( 0 )
-
+   
     cap_flag= 0
-    
+
     for f in os.listdir( os.path.join(input_folder, "submitted/" )):
-        if fnmatch.fnmatch( f, '*.raw') : 
+        if fnmatch.fnmatch( f, '*.raw') :
             cap_flag = 0
             break
-        if fnmatch.fnmatch( f, '*.RAW') :     
+        if fnmatch.fnmatch( f, '*.RAW') :
             cap_flag = 1
             break
-    
-    # 2 step
-    if cap_flag ==0: 
-        cmd =  " ls " + os.path.join(input_folder, "submitted/") + "*.raw | parallel --no-notice --joblog "+ os.path.join(output_folder ,"log_ms2scan")  + "  \" mono " +  os.path.join(START_LOC, "ms2extract.exe") + " -f {1}  > " + output_folder + "/{/.}.ms2scan \" " 
-    else:
-        cmd = " ls " + os.path.join(input_folder, "submitted/") + "*.RAW | parallel --no-notice --joblog "+ os.path.join(output_folder ,"log_ms2scan")  + "  \" mono " +  os.path.join(START_LOC, "ms2extract.exe") + " -f {1}  > " + output_folder + "/{/.}.ms2scan \" " 
-    
-    code_exec =  run_command( cmd, '  Creating ms2scan file by ms2extractor', log, True  )
 
-    if  code_exec== 1:
-        return ( 0 )
 
-    # 3 step 
-    cmd = "python create_input_from_mgf.py --start_folder " + output_folder   +" --output " +  output_folder + " --type mgf "
-    code_exec = run_command(  cmd, '  Creating moFF input ',log,True )
-
-    if  code_exec== 1:
-        return ( 0 )
-
-    
-    #4 step
-    
         
+    # 1 step
+    if cap_flag ==0:
+        cmd =  " ls " + os.path.join(input_folder, "submitted/") + "*.raw | parallel --no-notice --joblog "+ os.path.join(output_folder ,"log_ms2scan")  + "  \" mono " +  os.path.join(START_LOC, "ms2extract.exe") + " -f {1}  > " + output_folder + "/{/.}.ms2scan \" "
+    else:
+        cmd= " ls " + os.path.join(input_folder, "submitted/") + "*.RAW | parallel --no-notice --joblog "+ os.path.join(output_folder ,"log_ms2scan")  + "  \" mono " +  os.path.join(START_LOC, "ms2extract.exe") + " -f {1}  > " + output_folder + "/{/.}.ms2scan \" "
+    code_exec,flag_onlyMS2 =  run_command( cmd, '  1- Creating ms2scan file by ms2extractor', log, True  )
 
-    if cap_flag ==0: 
+    if  code_exec== 1:
+        return ( 0 )
+     
+    # 2 step 
+    cmd = "python create_input_from_mgf.py --start_folder " + output_folder   +" --output " +  output_folder + " --type prems2 "
+    code_exec,flag_onlyMS2 = run_command(  cmd, '  2- Creating moFF input ',log,True )
+
+    if  code_exec== 1:
+        return ( 0 )
+    
+    # 3  step
+    
+    if cap_flag ==0:
         cmd = " ls " + output_folder + "/*.ms2feat_input | parallel --no-notice  -j 3  --joblog "+ os.path.join(output_folder ,"log_moFF")  + " python " +  os.path.join(moFF_PATH ,'moff.py') + " --inputtsv {1}  --inputraw "+ input_folder + "/submitted/{/.}.raw --tol 10 --rt_w 2 --rt_p 1 --output_folder " + os.path.join(output_folder,'moff_output')
     else:
         cmd = " ls " + output_folder + "/*.ms2feat_input | parallel --no-notice  -j 3  --joblog "+ os.path.join(output_folder ,"log_moFF")  + " python " +  os.path.join(moFF_PATH ,'moff.py') + " --inputtsv {1}  --inputraw "+ input_folder + "/submitted/{/.}.RAW --tol 10 --rt_w 2 --rt_p 1 --output_folder " + os.path.join(output_folder,'moff_output')
 
-    code_exec =run_command( cmd, '  Running moFF ' ,log, True  )
+    code_exec,flag_onlyMS2    =run_command( cmd, '  3-  Running moFF ' ,log, True  )
 
     if  code_exec== 1:
         return ( 0 )
- 
-    #5 step  
+    
+    # 4 step
+    args= shlex.split( "java -jar  mzparser-testing.jar" + " -i " + input_folder  + " -o " + output_folder  + " -m"  )
+    code_exec,flag_onlyMS2 = run_command ( args, '  4- Parsing mgf file by mzparser-1.0.0.jar',  log,  False )
+    
+
+    if  code_exec== 1:
+        return ( 0 )
+    
+    
+    
+    # 5 step 
+    cmd = "python create_input_from_mgf.py --start_folder " + output_folder   +" --output " + os.path.join(output_folder,'moff_output')   + " --type mgf "
+    code_exec,flag_onlyMS2 = run_command(  cmd, '  5- Join mgf info to moFF result ',log,True )
+    
+    if flag_onlyMS2 :
+        log.critical('   >>  only the MS2 scans have been quantified'  )
+        return 1
+    if  code_exec== 1:
+        return ( 0 )
+
+
+    
+    #6 step
+
     
     if flag_prod == 1:
-        cmd= "java -jar mzparser-internal-1.0.0.jar  -i " + input_folder  + " -o "+ output_folder +"/moff_output"  + " -s"
+        cmd= "java -jar mzparser-1.0.0-merger_internal.jar  -i " + input_folder  + " -o "+ output_folder +"/moff_output"  + " -s"
     else:
-        cmd= "java -jar  mzparser-1.0.0.jar  -i " + input_folder  + " -o "+ output_folder +"/moff_output"  + " -s"
+        cmd= "java -jar  mzparser-testing.jar  -i " + input_folder  + " -o "+ output_folder +"/moff_output"  + " -s"
     
-    code_exec = run_command(cmd, '  Parsing mzTAB data for ms1_quant output ' , log   , True   )
-    if  code_exec== 1:
-        return ( 0 )
-
-    #6 step 
-
-    cmd =  "python create_input_from_mgf.py  --start_folder " + os.path.join(output_folder,'moff_output')  + " --output " + os.path.join(output_folder,"moff_output") + " --type mztab "
-    
-    code_exec =  run_command( cmd, '  Creating ms1_quant output '  ,log , True )
+    code_exec,flag_onlyMS2  = run_command(cmd, '  6- Parsing mzTAB data for ms1_quant output ' , log   , True   )
     if  code_exec== 1:
         return ( 0 )
 
     #7 step 
 
+    cmd =  "python create_input_from_mgf.py  --start_folder " + os.path.join(output_folder,'moff_output')  + " --output " + os.path.join(output_folder,"moff_output") + " --type mztab "
+    
+    code_exec,flag_onlyMS2 =  run_command( cmd, '  7- Creating ms1_quant output '  ,log , True )
+    if  code_exec== 1:
+        return ( 0 )
+
+    #8 step 
+
     if flag_prod == 1:
-        cmd = "java -jar  mzparser-internal-1.0.0.jar  -i " + input_folder  + " -o " +  output_folder +"/moff_output"  + " -z"
+        cmd = "java -jar  mzparser-1.0.0-merger_internal.jar  -i " + input_folder  + " -o " +  output_folder +"/moff_output"  + " -z"
     else:
-        cmd = "java -jar  mzparser-1.0.0.jar  -i " + input_folder  + " -o " +  output_folder +"/moff_output"  + " -z"
+        cmd = "java -jar   mzparser-testing.jar  -i " + input_folder  + " -o " +  output_folder +"/moff_output"  + " -z"
 
-    code_exec = run_command(cmd,'Creating mzTAB output', log, True)
+    code_exec,flag_onlyMS2 = run_command(cmd,'  8- Creating mzTAB output', log, True)
     if  code_exec== 1:
         return ( 0 )
         
-    # 8 step    
+    # 9 step    
     cmd = "  mv " +   os.path.join(output_folder,'moff_output') +  "/*.mztab "+  result_folder     
-    code_exec = run_command( cmd,'  Move result mzTab file ' ,log , True  )
+    code_exec,flag_onlyMS2 = run_command( cmd,'  9- Move result mzTab file ' ,log , True  )
     if  code_exec== 1:
         return ( 0 )
         
 
-    #8 step     
+    #10 step     
     cmd= "  mv " +   os.path.join(output_folder,'moff_output') +  "/*.ms1_quant " + result_folder
-    code_exec = run_command(  cmd, '  Move result ms1_quant file', log,  True )
+    code_exec,flag_onlyMS2 = run_command(  cmd, '  10- Move result ms1_quant file', log,  True )
     if  code_exec== 1:
         return ( 0 )
 
-
+    
     return 1
 
 if __name__ == '__main__':
@@ -189,7 +208,7 @@ if __name__ == '__main__':
         f.close()
     else:
         ##  option for testing specific spec. PXD id 
-        list_pxdID=['PXD004741','PXD005521']
+        list_pxdID=['PXD004612','PXD003966']
     for pxd_id in list_pxdID:
         log.critical( ' start processing : %s', pxd_id  )
         status = run_pipeline( pxd_id  ,log, DATAINPUT_LOC,  DATAOUTPUT_LOC, START_LOC , moFF_PATH,args.prod_env ) 
