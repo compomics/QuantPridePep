@@ -30,12 +30,18 @@ Required library for MSFilereader by Thermo
 ## Structure of the pipeline and its components  ##
 
 The pipeline for each raw file present in the project runs the following steps:
-- parsing PRIDE mgf file using the Pride java library (*mzparser_1.0.0.jar*).  As output, it creates .moff2start file where MS2 spectra details are stored (mz,charge,index of the spectra)  
-- retention time extraxtion from original thermo raw file using the ms2extraction.exe for all MS2 spectra recorder.As output it creates *.moff2scan* file.
-- merging data contained in .moff2start and .moff2scan files to create input file from moFF (*create_input.py*). As output, it creates .ms2feat_input file 
-- running moFF on the ms2feat_input file  and the Thermo raw file
+- from each Thermo raw file, ms2extraction.exe extracts retention time and mz data for all MS2 spectra recorded. As output it creates *.moff2scan* file.
 
-- merging the result of moFF with the identidied peptide information present in the mzTab file. (*mzparser_1.0.0.jar*) 
+- from the *.moff2scan* file using *create_input.p* we create the *.ms2feat_input* that contains all the information needed by moFF
+
+- running moFF on the *ms2feat_input* file and the corrispondent  Thermo raw file
+
+- parsing PRIDE mgf file using the Pride java library (*mzparser_1.0.0.-xxxxx.jar*). As output, it creates *.moff2start* file where MS2 spectra details are stored (mz,charge,index of the spectra)  
+
+- merging data contained in .moff2start with the result of moFF *_moFF_result.txt*. As output, it creates *_moff_result_ms2id.txt* file that contains the ms1 intensied for all the spectras in the mgf. At this step we also save the output of moFF on all the MS2 spectra recorded in the standard output file of moFF (*_moff_result_ms2id.txt*)
+
+- Parsing all the idenfication result contained in the mzTab files of the project (using *mzparser_1.0.0.-xxxxx.jar*) and joining those information with the quantification result founded in  *_moff_result_ms2id.txt* files. Two types of output are produced: one are still mzTab file but with  all the quantitive information provided by  moFF for each psm and the other are *ms1_quant* file that contains the infomation but in simpy tabdelimited file.  
+
 
 ---
 
@@ -71,24 +77,26 @@ Running the pipeline with the following command:
 
 ` python   launch_pipeline.py -f list_PXD_file  --docker_run 0 --input_location your_input_folder  --output_location your_output_folder  >> high_level_log_output.txt `
 
-The folder your_input_folder should contain all the project folders (PXD00xxxx) where are located the mgf and the raw file of each project.
+The folder your_input_folder should contain all the project folders (PXDxxxx) where are located the mgf and the raw file of each project.
 
 In the output location, the pipeline will create for each project an output folder (PXDxxxx_moFF) where are located all the results and also all the intermediate files used.
 
 Exhaustive pipeline logs are written in moFF_pride_pipeline.log instead of a higher level log is printed in the standard output
 
-NOTE : with *--prod_env 0* , the pipeline expects to find all the  original mgf , raw files and the pride mztab in the subfolder PXDxxxx/submitted. In case of *--prod_env 1* the pipeline looks for the original mgf and raw file in the folder PXDxxxx/submitted but the pride mztab file in PXDxxxx/internal/
+NOTE : with *--prod_env 0* , the pipeline expects to find all the  original mgf , raw files and the pride mztab in the subfolder PXDxxxx/submitted. In case of **--prod_env 1** the pipeline looks for the original mgf and raw file in the folder PXDxxxx/submitted but the pride mztab file in **PXDxxxx/internal/**
 
 
 --- 
 
 ## Structure of the output folder and its content ##
 For every project correctly quantified the output  folder PXDxxxx_moFF should contains the following files and sub folders:
- - *.moff2start : file contains all the information parsed by the original mgf files   
- - *.moff2scan : files  contain all the ms2 event 
+ - *.moff2start :  all the information parsed by the original mgf files   
+ - *.moff2scan : all the ms2 events 
  - *.ms2feat_input : input files ready to be processed by moFF
- - moFF_output/ : this contains all the result and log file of moFF
- - result/ : this folder contains all the *.ms1_quant and the mzTab file with the MS1 quant information added. 
+ - moFF_output/ :  all the moFf result and log file are stored in this folder
+ - *_moff_result_ms2id.txt : result of moFF associated with the mgf data
+ - *_moff_result : simply the result of moFf for all the ms2 spectra founded in the Thermo raw file
+ - result/ : this folder contains all the .ms1_quant and the mzTab file with the MS1 quant information added to the identified peptied provided in mzTAb file of the project. 
  - log_moFF :  log of the moFF tasks run by GNU parallel
  - log_ms2scan : log of the MS2 extraction from the raw file produced by GNU parallel
 
