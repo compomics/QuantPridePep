@@ -236,15 +236,23 @@ def run_join (args):
         print args.start + '/*.moff2start'
         
         mgf_proc= sorted(glob.glob(args.start + '/*.moff2start' ))
+        
+        ## for pipeline where all the ms2  mgf spectra drive
+        #scan_proc= sorted(glob.glob(args.start + '/*.ms2scan' ))
+        
+        #for pipeline where all the ms2even drive
         scan_proc= sorted(glob.glob(args.start + '/moff_output/*_moff_result.txt' ))
-        #print len (mgf_proc),len(scan_proc)
+        #------
+
+        print len (mgf_proc),len(scan_proc)
         #print mgf_proc[0]
         #print  scan_proc[0]
         for ii in range(0,len(mgf_proc)):
-            #print '\t', mgf_proc[ii],scan_proc[ii]
+            print '\t', mgf_proc[ii],scan_proc[ii]
             
             # res containes the path and file name for the two file of the marging and just the name of file
             final_data = merge_mgf_moFFquant( mgf_proc[ii],scan_proc[ii],os.path.basename(mgf_proc[ii]).split('.')[0] ,args )
+            # for prex version of the pipeline
             #final_data = merge_mgf_MS2data(mgf_proc[ii],scan_proc[ii],os.path.basename(mgf_proc[ii]).split('.')[0] ,args)
             if final_data == -1:
                 print 'Error : Join failed No input file for ' , mgf_proc[ii] 
@@ -259,8 +267,13 @@ def run_join (args):
 # not used anymore , this step will be embedded into tha java code
 def run_join_mztab( args):
     print args.start + '/*_moff_result_ms2id.txt'
+    # debug for pipeline drived by ms2 from mgf
+    #moff_proc= sorted(glob.glob(args.start + '/*_moff_result.txt' ))
+    # for new version of the pieeline
     moff_proc= sorted(glob.glob(args.start + '/*_moff_result_ms2id.txt' ))
+    # for ms2identified 
     mztab_proc= sorted(glob.glob(args.output + '/*.pride.txt' ))
+    
     #print moff_proc 
     #print '----- // -----'
     #print mztab_proc
