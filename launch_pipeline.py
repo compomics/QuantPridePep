@@ -64,7 +64,7 @@ def run_pipeline( prj_loc,log, DATAINPUT_LOC,  DATAOUTPUT_LOC, START_LOC , moFF_
             cap_flag = 1
             break
 
-
+    
         
     # 1 step
     if cap_flag ==0:
@@ -103,7 +103,7 @@ def run_pipeline( prj_loc,log, DATAINPUT_LOC,  DATAOUTPUT_LOC, START_LOC , moFF_
     if  code_exec== 1:
         return ( 0 )
     
-    
+     
     
     # 5 step 
     cmd = "python create_input_from_mgf.py --start_folder " + output_folder   +" --output " + os.path.join(output_folder,'moff_output')   + " --type mgf "
@@ -208,7 +208,7 @@ if __name__ == '__main__':
         f.close()
     else:
         ##  option for testing specific spec. PXD id 
-        list_pxdID=['PXD004612','PXD003966']
+        list_pxdID=['PXD004612'] # PXD002796  PXD004612
     for pxd_id in list_pxdID:
         log.critical( ' start processing : %s', pxd_id  )
         status = run_pipeline( pxd_id  ,log, DATAINPUT_LOC,  DATAOUTPUT_LOC, START_LOC , moFF_PATH,args.prod_env ) 
