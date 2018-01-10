@@ -40,7 +40,7 @@ The pipeline for each raw file present in the project runs the following steps:
 
 - merging data contained in .moff2start with the result of moFF *_moFF_result.txt*. As output, it creates *_moff_result_ms2id.txt* files that contain the MS1 intensities for all the spectras in the mgf. At this step we also save the output of moFF on all the MS2 spectra recorded in the standard output file of moFF (*_moff_result.txt*)
 
-- Parsing all the idenfication result contained in the mzTab files of the project  and joining those information with the quantification result founded in  *_moff_result_ms2id.txt* files. Two types of output are produced: one is still *mzTab* file but with all the quantitive information provided by moFF for each psm and the other is  that contains the same infomation but in simply tab delimited file *.ms1_quant* .  
+- Parsing all the idenfication result contained in the mzTab files of the project  and joining those information with the quantification result found in  *_moff_result_ms2id.txt* files. Two types of output are produced: one is still *mzTab* file but with all the quantitive information provided by moFF for each psm and the other is  that contains the same infomation but in simply tab delimited file *.ms1_quant* .  
 
 
 ---
@@ -64,7 +64,7 @@ The ouput file  with peptide MS1 intensities and their quality measures are prod
  
  `git clone -b master  --single-branch https://github.com/compomics/QuantPridePep.git  your_path/moFF_pipeline`
 
-Open the the file `create_input_from_mgf.py` and with any text editor adjust on lines 167-168 the absolute path of your your_path/moFF and your_path/moFF_pipeline. 
+Open the file `create_input_from_mgf.py` and with any text editor adjust on lines 167-168 the absolute path of your your_path/moFF and your_path/moFF_pipeline. 
 
 
 Use `python launch_pipeline.py -h`
@@ -73,7 +73,7 @@ Use `python launch_pipeline.py -h`
   --docker_run         flag to activate/deactivate docker setting
   --output_location    input folder e.g where all PXDxx folder are located
   --input_location     output folder e.g where to all the moFF result for each project
-  --prod_env PROD_ENV  set if you run on production enviroment mztab file are located on the internal folder
+  --prod_env           set if you run on production enviroment mztab file are located on the internal folder
 ```
 
 Running the pipeline with the following command:
@@ -84,7 +84,7 @@ The folder *your_input_folder* should contain all the project folders (PXDxxxx) 
 
 In the output location, the pipeline will create for each project an output folder (PXDxxxx_moFF) where are located all the results and also all the intermediate files used.
 
-Exhaustive pipeline logs are written in *moFF_pride_pipeline.log* instead of a higher level log is printed in the standard output
+Exhaustive pipeline logs are written in *moFF_pride_pipeline.log* instead of a higher level log is printed in the standard output.
 
 NOTE : with *--prod_env 0* , the pipeline expects to find all the  original mgf , raw files and the pride mztab in the subfolder PXDxxxx/submitted. In case of **--prod_env 1** the pipeline looks for the original mgf and raw file in the folder PXDxxxx/submitted but the pride mztab file in **PXDxxxx/internal/**
 
