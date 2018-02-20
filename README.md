@@ -12,6 +12,7 @@ Required java version :
 
  [moFF](https://github.com/compomics/moFF/tree/master) should be installed separately on your machine.
 
+- GNU parallel should be installed in your system 
 
 Required python libraries for moFF :
 - Python 2.7
