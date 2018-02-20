@@ -64,7 +64,7 @@ The ouput file  with peptide MS1 intensities and their quality measures are prod
  
  `git clone -b master  --single-branch https://github.com/compomics/QuantPridePep.git  your_path/moFF_pipeline`
 
-Open the file `create_input_from_mgf.py` and with any text editor adjust on lines 167-168 the absolute path of your your_path/moFF and your_path/moFF_pipeline. 
+Open the file `launch_pipeline.py` and with any text editor adjust on lines 184-1187 the absolute path of your your_path/moFF and your_path/moFF_pipeline. 
 
 
 Use `python launch_pipeline.py -h`
