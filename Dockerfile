@@ -7,7 +7,6 @@ RUN pip install simplejson
 RUN apt-get install git
 RUN apt-get update -y
 RUN apt-get install gnupg -y 
-#RUN apt-get install software-properties-common -y
 
 RUN apt-get update -y
 RUN apt-get install openjdk-8-jdk-headless -y
