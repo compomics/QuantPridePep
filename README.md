@@ -1,5 +1,5 @@
 # QuantPridePep
-This pipeline provides MS1 peptides intensities for PRIDE "complete" submitted project using moFF.
+This pipeline provides MS1 peptides intensities for PRIDE project using moFF.
 
 ---
 
@@ -7,20 +7,22 @@ This pipeline provides MS1 peptides intensities for PRIDE "complete" submitted p
 ## Minimum Requirements ##
 
 Required java version :
-- Java Runtime Environment (JRE) 8
 
-
- [moFF](https://github.com/compomics/moFF/tree/master) should be installed separately on your machine.
+- [moFF](https://github.com/compomics/moFF/tree/master) should be installed separately on your machine.
 
 - GNU parallel should be installed in your system 
 
 Required python libraries for moFF :
-- Python 2.7
-- pandas  > 0.20
-- numpy > 1.10.0
-- argparse > 1.2.1 
-- scikit-learn > 0.17
-- pymzML > 0.7.7
+- Python 3.6+
+- pandas > 0.23
+- numpy > 1.15.0
+- argparse > 1.2.1
+- scipy 1.1.0
+- scikit-learn > 0.19
+- pymzML > 2.0.3
+- brain-isotopic-distribution > 1.3.2
+- pyteomics > 3.5
+
 
 Required library for MSFilereader by Thermo 
 - mono library version 4.2.1
@@ -35,14 +37,9 @@ The pipeline for each raw file present in the project runs the following steps:
 
 - starting from  *.moff2scan*, input file for moFF are created and stored as *ms2feat_input* 
 
-- running moFF on the *ms2feat_input* file and their corrispondent Thermo raw files
+- run moFF on the *ms2feat_input* file 
 
-- parsing PRIDE mgf file using the Pride java library. As output, it creates *.moff2start* file where MS2 spectra details are stored (mz,charge,spectra indexes )  
-
-- merging data contained in .moff2start with the result of moFF *_moFF_result.txt*. As output, it creates *_moff_result_ms2id.txt* files that contain the MS1 intensities for all the spectras in the mgf. At this step we also save the output of moFF on all the MS2 spectra recorded in the standard output file of moFF (*_moff_result.txt*)
-
-- Parsing all the idenfication result contained in the mzTab files of the project  and joining those information with the quantification result found in  *_moff_result_ms2id.txt* files. Two types of output are produced: one is still *mzTab* file but with all the quantitive information provided by moFF for each psm and the other is  that contains the same infomation but in simply tab delimited file *.ms1_quant* .  
-
+- merging data contained in .mgf.omega.csv with the result of moFF *_moFF_result.txt*. As output, it creates *_omega_quant.txt* files that contain the MS1 intensities for all the ionbot identification. At this step we also save the output of moFF on all the MS2 spectra recorded in the standard output file of moFF (*_moff_result.txt*)
 
 ---
 
@@ -52,7 +49,7 @@ The pipeline for each raw file present in the project runs the following steps:
 The ouput file  with peptide MS1 intensities and their quality measures are produced  in two formats :
 - .ms1_quant file (they are basically standard moFF output file)
 
-- .mzTab file (where along with the original identified peptide information, the moFF quantitative data is added)
+- _omega_quant.txt file (where along with the original identified peptide information, the moFF quantitative data is added)
 
 
 ## Set-up and running  ##
@@ -74,7 +71,6 @@ Use `python launch_pipeline.py -h`
   --docker_run         flag to activate/deactivate docker setting
   --output_location    input folder e.g where all PXDxx folder are located
   --input_location     output folder e.g where to all the moFF result for each project
-  --prod_env           set if you run on production enviroment mztab file are located on the internal folder
 ```
 
 Running the pipeline with the following command:
@@ -87,12 +83,11 @@ In the output location, the pipeline will create for each project an output fold
 
 Exhaustive pipeline logs are written in *moFF_pride_pipeline.log* instead of a higher level log is printed in the standard output.
 
-NOTE : with *--prod_env 0* , the pipeline expects to find all the  original mgf , raw files and the pride mztab in the subfolder PXDxxxx/submitted. In case of **--prod_env 1** the pipeline looks for the original mgf and raw file in the folder PXDxxxx/submitted but the pride mztab file in **PXDxxxx/internal/**
-
 
 --- 
 
 ## Structure of the output folder and its content ##
+This part should be re-writed --> ! 
 For every project correctly quantified the output  folder PXDxxxx_moFF should contains the following files and sub folders:
  - *.moff2start :  all the information parsed by the original mgf files   
  - *.moff2scan : all the ms2 events 
