@@ -64,7 +64,7 @@ def run_pipeline( prj_loc,log, DATAINPUT_LOC,  DATAOUTPUT_LOC, START_LOC , moFF_
             cap_flag = 1
             break
 
-    
+     
         
     # 1 step
     if cap_flag ==0:
@@ -86,15 +86,30 @@ def run_pipeline( prj_loc,log, DATAINPUT_LOC,  DATAOUTPUT_LOC, START_LOC , moFF_
     # 3  step
     
     if cap_flag ==0:
-        cmd = " ls " + output_folder + "/*.ms2feat_input | parallel --no-notice  -j 3  --joblog "+ os.path.join(output_folder ,"log_moFF")  + " python " +  os.path.join(moFF_PATH ,'moff.py') + " --inputtsv {1}  --inputraw "+ input_folder + "/submitted/{/.}.raw --tol 10 --rt_w 2 --rt_p 1 --output_folder " + os.path.join(output_folder,'moff_output')
+        cmd = " ls " + output_folder + "/*.ms2feat_input | parallel --no-notice  -j 3  --joblog "+ os.path.join(output_folder ,"log_moFF")  + " python " +  os.path.join(moFF_PATH ,'moff_all.py') + " --tsv_list {1}  --raw_list "+ input_folder + "/submitted/{/.}.raw --tol 10 --mbr off  --xic_length 3 --rt_peak_win 1 --loc_out " + os.path.join(output_folder,'moff_output' )
     else:
-        cmd = " ls " + output_folder + "/*.ms2feat_input | parallel --no-notice  -j 3  --joblog "+ os.path.join(output_folder ,"log_moFF")  + " python " +  os.path.join(moFF_PATH ,'moff.py') + " --inputtsv {1}  --inputraw "+ input_folder + "/submitted/{/.}.RAW --tol 10 --rt_w 2 --rt_p 1 --output_folder " + os.path.join(output_folder,'moff_output')
+        cmd = " ls " + output_folder + "/*.ms2feat_input | parallel --no-notice  -j 3  --joblog "+ os.path.join(output_folder ,"log_moFF")  + " python " +  os.path.join(moFF_PATH ,'moff_all.py') + " --tsv_list {1}  --raw_list "+ input_folder + "/submitted/{/.}.RAW --tol 10 --mbr off --xic_length 3 --rt_peak_win 1 --loc_out " + os.path.join(output_folder,'moff_output' )
 
     code_exec,flag_onlyMS2    =run_command( cmd, '  3-  Running moFF ' ,log, True  )
 
     if  code_exec== 1:
         return ( 0 )
     
+
+    # 4 step 
+    # version with in house Pride reprocessing with ionbot 
+
+    cmd ="python create_input_from_mgf.py  --start_folder " + input_folder  + " --output " + output_folder + " --type omega "
+    
+    code_exec,flag_onlyMS2 =  run_command( cmd, '  4- Merging with Omega result '  ,log , True )
+    
+    if  code_exec== 1:
+        return ( 0 )
+
+
+    
+    '''
+    #old version  supposed to wotk on Pride side . 
     # 4 step
     args= shlex.split( "java -jar  mzparser-testing.jar" + " -i " + input_folder  + " -o " + output_folder  + " -m"  )
     code_exec,flag_onlyMS2 = run_command ( args, '  4- Parsing mgf file by mzparser-1.0.0.jar',  log,  False )
@@ -161,7 +176,7 @@ def run_pipeline( prj_loc,log, DATAINPUT_LOC,  DATAOUTPUT_LOC, START_LOC , moFF_
     if  code_exec== 1:
         return ( 0 )
 
-    
+    '''
     return 1
 
 if __name__ == '__main__':
@@ -174,7 +189,6 @@ if __name__ == '__main__':
     parser.add_argument('--output_location', dest='output_loc', action='store',   help='input folder e.g where all PXDxx folder are located', required=True)
     parser.add_argument('--input_location', dest='input_loc', action='store',   help='output folder e.g where to all the moFF result for each project ', required=True)
 
-    parser.add_argument('--prod_env', dest='prod_env', type= int , default=0 ,  action='store', help='set if you run on production env. mztab file are located on internal',required=True  )
 
     args = parser.parse_args()
 
@@ -184,7 +198,7 @@ if __name__ == '__main__':
     else:
         # change with your apropiate location.
         START_LOC = os.environ.get('START_LOC', '/home/compomics/second_disk/Pride_pipeline_local')
-        moFF_PATH = os.environ.get('moFF_PATH', '/home/compomics/moFF_master')
+        moFF_PATH = os.environ.get('moFF_PATH', '/home/compomics/moFF_master_pipeline')
         
     DATAINPUT_LOC = os.environ.get('DATAINPUT_LOC', args.input_loc  )
     DATAOUTPUT_LOC = os.environ.get('DATAOUTPUT_LOC', args.output_loc )
@@ -194,7 +208,7 @@ if __name__ == '__main__':
     ch.setLevel(logging.ERROR)
     formatter = logging.Formatter('%(asctime)s - moFF-PRIDE pipeline - %(message)s')
     ch.setFormatter( formatter)
-    fh = logging.FileHandler('moFF_pride_pipeline.log', mode='w',)
+    fh = logging.FileHandler('moFF_pride_pipeline.log', mode='w')
     fh.setFormatter( formatter)
     fh.setLevel(logging.INFO)
     log.addHandler(ch)
@@ -208,7 +222,7 @@ if __name__ == '__main__':
         f.close()
     else:
         ##  option for testing specific spec. PXD id 
-        list_pxdID=['PXD004612'] # PXD002796  PXD004612
+        list_pxdID=['PXD000561'] # PXD002796  PXD004612
     for pxd_id in list_pxdID:
         log.critical( ' start processing : %s', pxd_id  )
         status = run_pipeline( pxd_id  ,log, DATAINPUT_LOC,  DATAOUTPUT_LOC, START_LOC , moFF_PATH,args.prod_env ) 
