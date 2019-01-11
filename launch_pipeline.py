@@ -35,7 +35,7 @@ def run_command ( cmd ,  msg_cmd ,  log , flag_shell = False):
             return (0,False)
     
 
-def run_pipeline( prj_loc,log, DATAINPUT_LOC,  DATAOUTPUT_LOC, START_LOC , moFF_PATH ,flag_prod ):
+def run_pipeline( prj_loc,log, DATAINPUT_LOC,  DATAOUTPUT_LOC, START_LOC , moFF_PATH  ):
      
     skip_steps_flag = False
     if not (os.path.isdir(   os.path.join( DATAOUTPUT_LOC, prj_loc  +'_moFF'  )   )): 
@@ -225,7 +225,7 @@ if __name__ == '__main__':
         list_pxdID=['PXD000561'] # PXD002796  PXD004612
     for pxd_id in list_pxdID:
         log.critical( ' start processing : %s', pxd_id  )
-        status = run_pipeline( pxd_id  ,log, DATAINPUT_LOC,  DATAOUTPUT_LOC, START_LOC , moFF_PATH,args.prod_env ) 
+        status = run_pipeline( pxd_id  ,log, DATAINPUT_LOC,  DATAOUTPUT_LOC, START_LOC , moFF_PATH ) 
         if status == 1:
             log.critical(' >> ended  correctly  : %s', pxd_id  )
         else: 
